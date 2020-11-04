@@ -52,6 +52,7 @@ func (VirtualMachineInstanceStatus) SwaggerDoc() map[string]string {
 		"qosClass":           "The Quality of Service (QOS) classification assigned to the virtual machine instance based on resource requirements\nSee PodQOSClass type for available QOS classes\nMore info: https://git.k8s.io/community/contributors/design-proposals/node/resource-qos.md\n+optional",
 		"evacuationNodeName": "EvacuationNodeName is used to track the eviction process of a VMI. It stores the name of the node that we want\nto evacuate. It is meant to be used by KubeVirt core components only and can't be set or modified by users.\n+optional",
 		"activePods":         "ActivePods is a mapping of pod UID to node name.\nIt is possible for multiple pods to be running for a single VMI during migration.",
+		"hotpluggedVolumes":  "List of volumes that are hot plugged.",
 	}
 }
 
@@ -99,8 +100,8 @@ func (VirtualMachineInstanceGuestOSInfo) SwaggerDoc() map[string]string {
 func (VirtualMachineInstanceMigrationState) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":                               "+k8s:openapi-gen=true",
-		"startTimestamp":                 "The time the migration action began\n+nullable",
-		"endTimestamp":                   "The time the migration action ended\n+nullable",
+		"startTimestamp":                 "The time the migration action began",
+		"endTimestamp":                   "The time the migration action ended",
 		"targetNodeDomainDetected":       "The Target Node has seen the Domain Start Event",
 		"targetNodeAddress":              "The address of the target node to use for the migration",
 		"targetDirectMigrationNodePorts": "The list of ports opened for live migration on the destination node",
@@ -180,7 +181,7 @@ func (DataVolumeTemplateSpec) SwaggerDoc() map[string]string {
 func (VirtualMachineInstanceTemplateSpec) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":         "+k8s:openapi-gen=true",
-		"metadata": "+kubebuilder:pruning:PreserveUnknownFields\n+nullable",
+		"metadata": "+nullable",
 		"spec":     "VirtualMachineInstance Spec contains the VirtualMachineInstance specification.",
 	}
 }
@@ -257,31 +258,24 @@ func (VirtualMachineSpec) SwaggerDoc() map[string]string {
 
 func (VirtualMachineStatus) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":                       "VirtualMachineStatus represents the status returned by the\ncontroller to describe how the VirtualMachine is doing\n\n+k8s:openapi-gen=true",
-		"snapshotInProgress":     "SnapshotInProgress is the name of the VirtualMachineSnapshot currently executing",
-		"created":                "Created indicates if the virtual machine is created in the cluster",
-		"ready":                  "Ready indicates if the virtual machine is running and ready",
-		"conditions":             "Hold the state information of the VirtualMachine and its VirtualMachineInstance",
-		"stateChangeRequests":    "StateChangeRequests indicates a list of actions that should be taken on a VMI\ne.g. stop a specific VMI then start a new one.",
-		"volumeSnapshotStatuses": "VolumeSnapshotStatuses indicates a list of statuses whether snapshotting is\nsupported by each volume.",
-	}
-}
-
-func (VolumeSnapshotStatus) SwaggerDoc() map[string]string {
-	return map[string]string{
-		"":        "+k8s:openapi-gen=true",
-		"name":    "Volume name",
-		"enabled": "True if the volume supports snapshotting",
-		"reason":  "Empty if snapshotting is enabled, contains reason otherwise",
+		"":                    "VirtualMachineStatus represents the status returned by the\ncontroller to describe how the VirtualMachine is doing\n\n+k8s:openapi-gen=true",
+		"snapshotInProgress":  "SnapshotInProgress is the name of the VirtualMachineSnapshot currently executing",
+		"created":             "Created indicates if the virtual machine is created in the cluster",
+		"ready":               "Ready indicates if the virtual machine is running and ready",
+		"conditions":          "Hold the state information of the VirtualMachine and its VirtualMachineInstance",
+		"stateChangeRequests": "StateChangeRequests indicates a list of actions that should be taken on a VMI\ne.g. stop a specific VMI then start a new one.",
 	}
 }
 
 func (VirtualMachineStateChangeRequest) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":       "+k8s:openapi-gen=true",
-		"action": "Indicates the type of action that is requested. e.g. Start or Stop",
-		"data":   "Provides additional data in order to perform the Action",
-		"uid":    "Indicates the UUID of an existing Virtual Machine Instance that this change request applies to -- if applicable",
+		"":           "+k8s:openapi-gen=true",
+		"action":     "Indicates the type of action that is requested. e.g. Start or Stop",
+		"data":       "Provides additional data in order to perform the Action",
+		"uid":        "Indicates the UUID of an existing Virtual Machine Instance that this change request applies to -- if applicable",
+		"volume":     "Indicates the volume to permanently add to the VM.",
+		"disk":       "Indicates the disk to permanently add to the VM.",
+		"fileSystem": "Indicates the filesystem to permanently add to the VM.",
 	}
 }
 
@@ -427,6 +421,12 @@ func (VirtualMachineInstanceFileSystem) SwaggerDoc() map[string]string {
 func (RenameOptions) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"": "Options for a rename operation",
+	}
+}
+
+func (HotplugVolumeRequest) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "HotplugVolumeRequest is provided when hot plugging a volume and disk",
 	}
 }
 

@@ -29,10 +29,12 @@ type Client interface {
 	GetStorageClass(ctx context.Context, name string) (*storagev1.StorageClass, error)
 	ListVirtualMachineNames(namespace string, requiredLabels map[string]string) ([]string, error)
 	DeleteDataVolume(namespace string, name string) error
-	CreateDataVolume(namespace string, name string) error
+	CreateDataVolume(namespace string, dataVolume csiv1alpha1.DataVolume) error
 	GetDataVolume(namespace string, name string) (*csiv1alpha1.DataVolume, error)
 	ListDataVolumeNames(namespace string, requiredLabels map[string]string) ([]csiv1alpha1.DataVolume, error)
 	GetVMI(ctx context.Context, namespace string, name string) (*kubevirtapiv1.VirtualMachineInstance, error)
+	AddVolumeToVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error
+	RemoveVolumeFromVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error
 }
 
 type client struct {
@@ -41,12 +43,21 @@ type client struct {
 	dynamicClient    dynamic.Interface
 }
 
+func (c *client) AddVolumeToVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error {
+	return c.virtClient.VirtualMachine(namespace).AddVolume(vmName, &hotPlugRequest)
+}
+
+func (c *client) RemoveVolumeFromVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error {
+	return c.virtClient.VirtualMachine(namespace).RemoveVolume(vmName, &hotPlugRequest)
+}
+
 func (c *client) ListVirtualMachineNames(namespace string, requiredLabels map[string]string) ([]string, error) {
 	panic("implement me")
 }
 
-func (c *client) CreateDataVolume(namespace string, name string) error {
-	panic("implement me")
+func (c *client) CreateDataVolume(namespace string, dataVolume csiv1alpha1.DataVolume) error {
+	_, err := c.virtClient.CdiClient().CdiV1alpha1().DataVolumes(namespace).Create(&dataVolume)
+	return err
 }
 
 // New creates our client wrapper object for the actual kubeVirt and kubernetes clients we use.

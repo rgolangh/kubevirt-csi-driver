@@ -307,7 +307,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/client-go/api/v1.DiskDevice":                                          schema_kubevirtio_client_go_api_v1_DiskDevice(ref),
 		"kubevirt.io/client-go/api/v1.DiskTarget":                                          schema_kubevirtio_client_go_api_v1_DiskTarget(ref),
 		"kubevirt.io/client-go/api/v1.DomainSpec":                                          schema_kubevirtio_client_go_api_v1_DomainSpec(ref),
-		"kubevirt.io/client-go/api/v1.DownwardAPIVolumeSource":                             schema_kubevirtio_client_go_api_v1_DownwardAPIVolumeSource(ref),
 		"kubevirt.io/client-go/api/v1.EFI":                                                 schema_kubevirtio_client_go_api_v1_EFI(ref),
 		"kubevirt.io/client-go/api/v1.EmptyDiskSource":                                     schema_kubevirtio_client_go_api_v1_EmptyDiskSource(ref),
 		"kubevirt.io/client-go/api/v1.EphemeralVolumeSource":                               schema_kubevirtio_client_go_api_v1_EphemeralVolumeSource(ref),
@@ -332,7 +331,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/client-go/api/v1.Interface":                                           schema_kubevirtio_client_go_api_v1_Interface(ref),
 		"kubevirt.io/client-go/api/v1.InterfaceBindingMethod":                              schema_kubevirtio_client_go_api_v1_InterfaceBindingMethod(ref),
 		"kubevirt.io/client-go/api/v1.InterfaceBridge":                                     schema_kubevirtio_client_go_api_v1_InterfaceBridge(ref),
-		"kubevirt.io/client-go/api/v1.InterfaceMacvtap":                                    schema_kubevirtio_client_go_api_v1_InterfaceMacvtap(ref),
 		"kubevirt.io/client-go/api/v1.InterfaceMasquerade":                                 schema_kubevirtio_client_go_api_v1_InterfaceMasquerade(ref),
 		"kubevirt.io/client-go/api/v1.InterfaceSRIOV":                                      schema_kubevirtio_client_go_api_v1_InterfaceSRIOV(ref),
 		"kubevirt.io/client-go/api/v1.InterfaceSlirp":                                      schema_kubevirtio_client_go_api_v1_InterfaceSlirp(ref),
@@ -401,7 +399,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/client-go/api/v1.VirtualMachineStateChangeRequest":                    schema_kubevirtio_client_go_api_v1_VirtualMachineStateChangeRequest(ref),
 		"kubevirt.io/client-go/api/v1.VirtualMachineStatus":                                schema_kubevirtio_client_go_api_v1_VirtualMachineStatus(ref),
 		"kubevirt.io/client-go/api/v1.Volume":                                              schema_kubevirtio_client_go_api_v1_Volume(ref),
-		"kubevirt.io/client-go/api/v1.VolumeSnapshotStatus":                                schema_kubevirtio_client_go_api_v1_VolumeSnapshotStatus(ref),
 		"kubevirt.io/client-go/api/v1.VolumeSource":                                        schema_kubevirtio_client_go_api_v1_VolumeSource(ref),
 		"kubevirt.io/client-go/api/v1.Watchdog":                                            schema_kubevirtio_client_go_api_v1_Watchdog(ref),
 		"kubevirt.io/client-go/api/v1.WatchdogDevice":                                      schema_kubevirtio_client_go_api_v1_WatchdogDevice(ref),
@@ -14094,14 +14091,14 @@ func schema_kubevirtio_client_go_api_v1_DeveloperConfiguration(ref common.Refere
 					},
 					"pvcTolerateLessSpaceUpToPercent": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"memoryOvercommit": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"nodeSelectors": {
@@ -14120,14 +14117,14 @@ func schema_kubevirtio_client_go_api_v1_DeveloperConfiguration(ref common.Refere
 					},
 					"useEmulation": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
 					"cpuAllocationRatio": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 				},
@@ -14230,7 +14227,7 @@ func schema_kubevirtio_client_go_api_v1_Devices(ref common.ReferenceCallback) co
 					},
 					"networkInterfaceMultiqueue": {
 						SchemaProps: spec.SchemaProps{
-							Description: "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature for network devices. The number of queues created depends on additional factors of the VirtualMachineInstance, like the number of guest CPUs.",
+							Description: "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -14249,6 +14246,11 @@ func schema_kubevirtio_client_go_api_v1_Devices(ref common.ReferenceCallback) co
 						},
 					},
 					"filesystems": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "Filesystems describes filesystem which is connected to the vmi.",
 							Type:        []string{"array"},
@@ -14502,41 +14504,6 @@ func schema_kubevirtio_client_go_api_v1_DomainSpec(ref common.ReferenceCallback)
 		},
 		Dependencies: []string{
 			"kubevirt.io/client-go/api/v1.CPU", "kubevirt.io/client-go/api/v1.Chassis", "kubevirt.io/client-go/api/v1.Clock", "kubevirt.io/client-go/api/v1.Devices", "kubevirt.io/client-go/api/v1.Features", "kubevirt.io/client-go/api/v1.Firmware", "kubevirt.io/client-go/api/v1.Machine", "kubevirt.io/client-go/api/v1.Memory", "kubevirt.io/client-go/api/v1.ResourceRequirements"},
-	}
-}
-
-func schema_kubevirtio_client_go_api_v1_DownwardAPIVolumeSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "DownwardAPIVolumeSource represents a volume containing downward API info.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"fields": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Fields is a list of downward API volume file",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/core/v1.DownwardAPIVolumeFile"),
-									},
-								},
-							},
-						},
-					},
-					"volumeLabel": {
-						SchemaProps: spec.SchemaProps{
-							Description: "The volume label of the resulting disk inside the VMI. Different bootstrapping mechanisms require different values. Typical values are \"cidata\" (cloud-init), \"config-2\" (cloud-init) or \"OEMDRV\" (kickstart).",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/core/v1.DownwardAPIVolumeFile"},
 	}
 }
 
@@ -14877,8 +14844,7 @@ func schema_kubevirtio_client_go_api_v1_Filesystem(ref common.ReferenceCallback)
 					},
 					"virtiofs": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Virtiofs is supported",
-							Ref:         ref("kubevirt.io/client-go/api/v1.FilesystemVirtiofs"),
+							Ref: ref("kubevirt.io/client-go/api/v1.FilesystemVirtiofs"),
 						},
 					},
 				},
@@ -15188,11 +15154,6 @@ func schema_kubevirtio_client_go_api_v1_Interface(ref common.ReferenceCallback) 
 							Ref: ref("kubevirt.io/client-go/api/v1.InterfaceSRIOV"),
 						},
 					},
-					"macvtap": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubevirt.io/client-go/api/v1.InterfaceMacvtap"),
-						},
-					},
 					"ports": {
 						SchemaProps: spec.SchemaProps{
 							Description: "List of ports to be forwarded to the virtual machine.",
@@ -15245,7 +15206,7 @@ func schema_kubevirtio_client_go_api_v1_Interface(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/client-go/api/v1.DHCPOptions", "kubevirt.io/client-go/api/v1.InterfaceBridge", "kubevirt.io/client-go/api/v1.InterfaceMacvtap", "kubevirt.io/client-go/api/v1.InterfaceMasquerade", "kubevirt.io/client-go/api/v1.InterfaceSRIOV", "kubevirt.io/client-go/api/v1.InterfaceSlirp", "kubevirt.io/client-go/api/v1.Port"},
+			"kubevirt.io/client-go/api/v1.DHCPOptions", "kubevirt.io/client-go/api/v1.InterfaceBridge", "kubevirt.io/client-go/api/v1.InterfaceMasquerade", "kubevirt.io/client-go/api/v1.InterfaceSRIOV", "kubevirt.io/client-go/api/v1.InterfaceSlirp", "kubevirt.io/client-go/api/v1.Port"},
 	}
 }
 
@@ -15276,30 +15237,15 @@ func schema_kubevirtio_client_go_api_v1_InterfaceBindingMethod(ref common.Refere
 							Ref: ref("kubevirt.io/client-go/api/v1.InterfaceSRIOV"),
 						},
 					},
-					"macvtap": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubevirt.io/client-go/api/v1.InterfaceMacvtap"),
-						},
-					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/client-go/api/v1.InterfaceBridge", "kubevirt.io/client-go/api/v1.InterfaceMacvtap", "kubevirt.io/client-go/api/v1.InterfaceMasquerade", "kubevirt.io/client-go/api/v1.InterfaceSRIOV", "kubevirt.io/client-go/api/v1.InterfaceSlirp"},
+			"kubevirt.io/client-go/api/v1.InterfaceBridge", "kubevirt.io/client-go/api/v1.InterfaceMasquerade", "kubevirt.io/client-go/api/v1.InterfaceSRIOV", "kubevirt.io/client-go/api/v1.InterfaceSlirp"},
 	}
 }
 
 func schema_kubevirtio_client_go_api_v1_InterfaceBridge(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-			},
-		},
-	}
-}
-
-func schema_kubevirtio_client_go_api_v1_InterfaceMacvtap(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -15923,19 +15869,19 @@ func schema_kubevirtio_client_go_api_v1_MigrationConfiguration(ref common.Refere
 					},
 					"parallelOutboundMigrationsPerNode": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"parallelMigrationsPerCluster": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"allowAutoConverge": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
@@ -15946,25 +15892,25 @@ func schema_kubevirtio_client_go_api_v1_MigrationConfiguration(ref common.Refere
 					},
 					"completionTimeoutPerGiB": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"progressTimeout": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"unsafeMigrationOverride": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
 					"allowPostCopy": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
@@ -16052,13 +15998,13 @@ func schema_kubevirtio_client_go_api_v1_NetworkConfiguration(ref common.Referenc
 					},
 					"permitSlirpInterface": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
 					"permitBridgeInterfaceOnPodNetwork": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
+							Type:   []string{"string"},
 							Format: "",
 						},
 					},
@@ -16122,6 +16068,11 @@ func schema_kubevirtio_client_go_api_v1_NodePlacement(ref common.ReferenceCallba
 						},
 					},
 					"tolerations": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "tolerations is a list of tolerations applied to the relevant kind of pods See https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ for more info. These are additional tolerations other than default ones.",
 							Type:        []string{"array"},
@@ -18094,6 +18045,21 @@ func schema_kubevirtio_client_go_api_v1_VirtualMachineInstanceStatus(ref common.
 							},
 						},
 					},
+					"hotpluggedVolumes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of volumes that are hot plugged.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -18319,24 +18285,11 @@ func schema_kubevirtio_client_go_api_v1_VirtualMachineStatus(ref common.Referenc
 							},
 						},
 					},
-					"volumeSnapshotStatuses": {
-						SchemaProps: spec.SchemaProps{
-							Description: "VolumeSnapshotStatuses indicates a list of statuses whether snapshotting is supported by each volume.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("kubevirt.io/client-go/api/v1.VolumeSnapshotStatus"),
-									},
-								},
-							},
-						},
-					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/client-go/api/v1.VirtualMachineCondition", "kubevirt.io/client-go/api/v1.VirtualMachineStateChangeRequest", "kubevirt.io/client-go/api/v1.VolumeSnapshotStatus"},
+			"kubevirt.io/client-go/api/v1.VirtualMachineCondition", "kubevirt.io/client-go/api/v1.VirtualMachineStateChangeRequest"},
 	}
 }
 
@@ -18414,12 +18367,6 @@ func schema_kubevirtio_client_go_api_v1_Volume(ref common.ReferenceCallback) com
 							Ref:         ref("kubevirt.io/client-go/api/v1.SecretVolumeSource"),
 						},
 					},
-					"downwardAPI": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DownwardAPI represents downward API about the pod that should populate this volume",
-							Ref:         ref("kubevirt.io/client-go/api/v1.DownwardAPIVolumeSource"),
-						},
-					},
 					"serviceAccount": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ServiceAccountVolumeSource represents a reference to a service account. There can only be one volume of this type! More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
@@ -18431,41 +18378,7 @@ func schema_kubevirtio_client_go_api_v1_Volume(ref common.ReferenceCallback) com
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/client-go/api/v1.CloudInitConfigDriveSource", "kubevirt.io/client-go/api/v1.CloudInitNoCloudSource", "kubevirt.io/client-go/api/v1.ConfigMapVolumeSource", "kubevirt.io/client-go/api/v1.ContainerDiskSource", "kubevirt.io/client-go/api/v1.DataVolumeSource", "kubevirt.io/client-go/api/v1.DownwardAPIVolumeSource", "kubevirt.io/client-go/api/v1.EmptyDiskSource", "kubevirt.io/client-go/api/v1.EphemeralVolumeSource", "kubevirt.io/client-go/api/v1.HostDisk", "kubevirt.io/client-go/api/v1.SecretVolumeSource", "kubevirt.io/client-go/api/v1.ServiceAccountVolumeSource"},
-	}
-}
-
-func schema_kubevirtio_client_go_api_v1_VolumeSnapshotStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Volume name",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"enabled": {
-						SchemaProps: spec.SchemaProps{
-							Description: "True if the volume supports snapshotting",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"reason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Empty if snapshotting is enabled, contains reason otherwise",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"name", "enabled"},
-			},
-		},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/client-go/api/v1.CloudInitConfigDriveSource", "kubevirt.io/client-go/api/v1.CloudInitNoCloudSource", "kubevirt.io/client-go/api/v1.ConfigMapVolumeSource", "kubevirt.io/client-go/api/v1.ContainerDiskSource", "kubevirt.io/client-go/api/v1.DataVolumeSource", "kubevirt.io/client-go/api/v1.EmptyDiskSource", "kubevirt.io/client-go/api/v1.EphemeralVolumeSource", "kubevirt.io/client-go/api/v1.HostDisk", "kubevirt.io/client-go/api/v1.SecretVolumeSource", "kubevirt.io/client-go/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 
@@ -18536,12 +18449,6 @@ func schema_kubevirtio_client_go_api_v1_VolumeSource(ref common.ReferenceCallbac
 							Ref:         ref("kubevirt.io/client-go/api/v1.SecretVolumeSource"),
 						},
 					},
-					"downwardAPI": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DownwardAPI represents downward API about the pod that should populate this volume",
-							Ref:         ref("kubevirt.io/client-go/api/v1.DownwardAPIVolumeSource"),
-						},
-					},
 					"serviceAccount": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ServiceAccountVolumeSource represents a reference to a service account. There can only be one volume of this type! More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
@@ -18552,7 +18459,7 @@ func schema_kubevirtio_client_go_api_v1_VolumeSource(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/client-go/api/v1.CloudInitConfigDriveSource", "kubevirt.io/client-go/api/v1.CloudInitNoCloudSource", "kubevirt.io/client-go/api/v1.ConfigMapVolumeSource", "kubevirt.io/client-go/api/v1.ContainerDiskSource", "kubevirt.io/client-go/api/v1.DataVolumeSource", "kubevirt.io/client-go/api/v1.DownwardAPIVolumeSource", "kubevirt.io/client-go/api/v1.EmptyDiskSource", "kubevirt.io/client-go/api/v1.EphemeralVolumeSource", "kubevirt.io/client-go/api/v1.HostDisk", "kubevirt.io/client-go/api/v1.SecretVolumeSource", "kubevirt.io/client-go/api/v1.ServiceAccountVolumeSource"},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/client-go/api/v1.CloudInitConfigDriveSource", "kubevirt.io/client-go/api/v1.CloudInitNoCloudSource", "kubevirt.io/client-go/api/v1.ConfigMapVolumeSource", "kubevirt.io/client-go/api/v1.ContainerDiskSource", "kubevirt.io/client-go/api/v1.DataVolumeSource", "kubevirt.io/client-go/api/v1.EmptyDiskSource", "kubevirt.io/client-go/api/v1.EphemeralVolumeSource", "kubevirt.io/client-go/api/v1.HostDisk", "kubevirt.io/client-go/api/v1.SecretVolumeSource", "kubevirt.io/client-go/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 

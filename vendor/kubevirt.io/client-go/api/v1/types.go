@@ -188,6 +188,9 @@ type VirtualMachineInstanceStatus struct {
 	// ActivePods is a mapping of pod UID to node name.
 	// It is possible for multiple pods to be running for a single VMI during migration.
 	ActivePods map[types.UID]string `json:"activePods,omitempty"`
+
+	// List of volumes that are hot plugged.
+	HotpluggedVolumes map[string]types.UID `json:"hotpluggedVolumes,omitempty"`
 }
 
 func (v *VirtualMachineInstance) IsScheduling() bool {
@@ -273,11 +276,6 @@ const (
 	VirtualMachineInstanceReasonDisksNotMigratable = "DisksNotLiveMigratable"
 	// Reason means that VMI is not live migratioable because of it's network interfaces collection
 	VirtualMachineInstanceReasonInterfaceNotMigratable = "InterfaceNotLiveMigratable"
-)
-
-const (
-	// PodTerminatingReason indicates on the PodReady condition on the VMI if the underlying pod is terminating
-	PodTerminatingReason = "PodTerminating"
 )
 
 // +k8s:openapi-gen=true
@@ -382,10 +380,8 @@ type VirtualMachineInstanceGuestOSInfo struct {
 // +k8s:openapi-gen=true
 type VirtualMachineInstanceMigrationState struct {
 	// The time the migration action began
-	// +nullable
 	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
 	// The time the migration action ended
-	// +nullable
 	EndTimestamp *metav1.Time `json:"endTimestamp,omitempty"`
 	// The Target Node has seen the Domain Start Event
 	TargetNodeDomainDetected bool `json:"targetNodeDomainDetected,omitempty"`
@@ -769,7 +765,6 @@ type DataVolumeTemplateSpec struct {
 	// this field is not used by our controllers and is a no-op.
 	// +nullable
 	metav1.TypeMeta `json:",inline"`
-	// +kubebuilder:pruning:PreserveUnknownFields
 	// +nullable
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// DataVolumeSpec contains the DataVolume specification.
@@ -785,7 +780,6 @@ type DataVolumeTemplateSpec struct {
 //
 // +k8s:openapi-gen=true
 type VirtualMachineInstanceTemplateSpec struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
 	// +nullable
 	ObjectMeta metav1.ObjectMeta `json:"metadata,omitempty"`
 	// VirtualMachineInstance Spec contains the VirtualMachineInstance specification.
@@ -997,9 +991,10 @@ type StateChangeRequestAction string
 
 // These are the currently defined state change requests
 const (
-	StartRequest  StateChangeRequestAction = "Start"
-	StopRequest   StateChangeRequestAction = "Stop"
-	RenameRequest                          = "Rename"
+	StartRequest     StateChangeRequestAction = "Start"
+	StopRequest      StateChangeRequestAction = "Stop"
+	RenameRequest    StateChangeRequestAction = "Rename"
+	AddVolumeRequest StateChangeRequestAction = "AddVolume"
 )
 
 // VirtualMachineStatus represents the status returned by the
@@ -1018,19 +1013,6 @@ type VirtualMachineStatus struct {
 	// StateChangeRequests indicates a list of actions that should be taken on a VMI
 	// e.g. stop a specific VMI then start a new one.
 	StateChangeRequests []VirtualMachineStateChangeRequest `json:"stateChangeRequests,omitempty" optional:"true"`
-	// VolumeSnapshotStatuses indicates a list of statuses whether snapshotting is
-	// supported by each volume.
-	VolumeSnapshotStatuses []VolumeSnapshotStatus `json:"volumeSnapshotStatuses,omitempty" optional:"true"`
-}
-
-// +k8s:openapi-gen=true
-type VolumeSnapshotStatus struct {
-	// Volume name
-	Name string `json:"name"`
-	// True if the volume supports snapshotting
-	Enabled bool `json:"enabled"`
-	// Empty if snapshotting is enabled, contains reason otherwise
-	Reason string `json:"reason,omitempty" optional:"true"`
 }
 
 // +k8s:openapi-gen=true
@@ -1041,6 +1023,12 @@ type VirtualMachineStateChangeRequest struct {
 	Data map[string]string `json:"data,omitempty" optional:"true"`
 	// Indicates the UUID of an existing Virtual Machine Instance that this change request applies to -- if applicable
 	UID *types.UID `json:"uid,omitempty" optional:"true" protobuf:"bytes,5,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
+	// Indicates the volume to permanently add to the VM.
+	Volume *Volume `json:"volume,omitempty" optional:"true"`
+	// Indicates the disk to permanently add to the VM.
+	Disk *Disk `json:"disk,omitempty" optional:"true"`
+	// Indicates the filesystem to permanently add to the VM.
+	FileSystem *Filesystem `json:"fileSystem,omitempty" optional:"true"`
 }
 
 // VirtualMachineCondition represents the state of VirtualMachine
@@ -1446,6 +1434,14 @@ type RenameOptions struct {
 	OldName         *string `json:"oldName,omitempty"`
 }
 
+// HotplugVolumeRequest is provided when hot plugging a volume and disk
+type HotplugVolumeRequest struct {
+	Volume     *Volume     `json:"volume"`
+	Disk       *Disk       `json:"disk,omitempty"`
+	FileSystem *Filesystem `json:"fileSystem,omitempty"`
+	Ephemeral  bool        `json:"ephemeral,omitempty"`
+}
+
 // KubeVirtConfiguration holds all kubevirt configurations
 // +k8s:openapi-gen=true
 type KubeVirtConfiguration struct {
@@ -1478,31 +1474,31 @@ type SMBiosConfiguration struct {
 // +k8s:openapi-gen=true
 type MigrationConfiguration struct {
 	NodeDrainTaintKey                 *string            `json:"nodeDrainTaintKey,omitempty"`
-	ParallelOutboundMigrationsPerNode *uint32            `json:"parallelOutboundMigrationsPerNode,omitempty"`
-	ParallelMigrationsPerCluster      *uint32            `json:"parallelMigrationsPerCluster,omitempty"`
-	AllowAutoConverge                 *bool              `json:"allowAutoConverge,omitempty"`
+	ParallelOutboundMigrationsPerNode *uint32            `json:"parallelOutboundMigrationsPerNode,string,omitempty"`
+	ParallelMigrationsPerCluster      *uint32            `json:"parallelMigrationsPerCluster,string,omitempty"`
+	AllowAutoConverge                 *bool              `json:"allowAutoConverge,string,omitempty"`
 	BandwidthPerMigration             *resource.Quantity `json:"bandwidthPerMigration,omitempty"`
-	CompletionTimeoutPerGiB           *int64             `json:"completionTimeoutPerGiB,omitempty"`
-	ProgressTimeout                   *int64             `json:"progressTimeout,omitempty"`
-	UnsafeMigrationOverride           *bool              `json:"unsafeMigrationOverride,omitempty"`
-	AllowPostCopy                     *bool              `json:"allowPostCopy,omitempty"`
+	CompletionTimeoutPerGiB           *int64             `json:"completionTimeoutPerGiB,string,omitempty"`
+	ProgressTimeout                   *int64             `json:"progressTimeout,string,omitempty"`
+	UnsafeMigrationOverride           *bool              `json:"unsafeMigrationOverride,string,omitempty"`
+	AllowPostCopy                     *bool              `json:"allowPostCopy,string,omitempty"`
 }
 
 // DeveloperConfiguration holds developer options
 // +k8s:openapi-gen=true
 type DeveloperConfiguration struct {
 	FeatureGates           []string          `json:"featureGates,omitempty"`
-	LessPVCSpaceToleration int               `json:"pvcTolerateLessSpaceUpToPercent,omitempty"`
-	MemoryOvercommit       int               `json:"memoryOvercommit,omitempty"`
+	LessPVCSpaceToleration int               `json:"pvcTolerateLessSpaceUpToPercent,string,omitempty"`
+	MemoryOvercommit       int               `json:"memoryOvercommit,string,omitempty"`
 	NodeSelectors          map[string]string `json:"nodeSelectors,omitempty"`
-	UseEmulation           bool              `json:"useEmulation,omitempty"`
-	CPUAllocationRatio     int               `json:"cpuAllocationRatio,omitempty"`
+	UseEmulation           bool              `json:"useEmulation,string,omitempty"`
+	CPUAllocationRatio     float64           `json:"cpuAllocationRatio,string,omitempty"`
 }
 
 // NetworkConfiguration holds network options
 // +k8s:openapi-gen=true
 type NetworkConfiguration struct {
 	NetworkInterface                  string `json:"defaultNetworkInterface,omitempty"`
-	PermitSlirpInterface              *bool  `json:"permitSlirpInterface,omitempty"`
-	PermitBridgeInterfaceOnPodNetwork *bool  `json:"permitBridgeInterfaceOnPodNetwork,omitempty"`
+	PermitSlirpInterface              *bool  `json:"permitSlirpInterface,string,omitempty"`
+	PermitBridgeInterfaceOnPodNetwork *bool  `json:"permitBridgeInterfaceOnPodNetwork,string,omitempty"`
 }

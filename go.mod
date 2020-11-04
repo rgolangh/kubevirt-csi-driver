@@ -36,6 +36,9 @@ replace (
 	k8s.io/klog => k8s.io/klog v0.4.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 
+	// temp while awels code isn't merged
+	kubevirt.io/client-go => github.com/awels/kubevirt/staging/src/kubevirt.io/client-go v0.0.0-20201027160658-f19710e9cf38
+
 	kubevirt.io/containerized-data-importer => kubevirt.io/containerized-data-importer v1.25.0
 	sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v0.0.0-20190302045857-e85c7b244fd2
 
