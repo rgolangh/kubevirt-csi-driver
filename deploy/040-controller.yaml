@@ -94,5 +94,5 @@ spec:
         - name: socket-dir
           emptyDir: {}
         - name: infracluster
-            secret:
-              secretName: infra-cluster-sa-secret
+          secret:
+            secretName: infra-cluster-sa-secret
