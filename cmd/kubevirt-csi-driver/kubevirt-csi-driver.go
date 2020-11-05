@@ -3,18 +3,17 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/url"
 	"os"
 	"time"
 
-	"net/url"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	certutil "k8s.io/client-go/util/cert"
-	"k8s.io/klog"
 
 	"github.com/kubevirt/csi-driver/pkg/kubevirt"
 	"github.com/kubevirt/csi-driver/pkg/service"
@@ -32,8 +31,6 @@ var (
 
 func init() {
 	flag.Set("logtostderr", "true")
-	// got error flag log_dir redefined. someother library is initFlaging this..?
-	//klog.InitFlags(flag.CommandLine)
 }
 
 func main() {
@@ -45,30 +42,31 @@ func main() {
 
 func handle() {
 	if service.VendorVersion == "" {
-		klog.Fatalf("VendorVersion must be set at compile time")
+		log.Fatalf("VendorVersion must be set at compile time")
 	}
-	klog.V(2).Infof("Driver vendor %v %v", service.VendorName, service.VendorVersion)
+	log.Infof("Driver vendor %v %v", service.VendorName, service.VendorVersion)
 
+	log.Infof("apiUrl %v", *infraClusterApiUrl)
 	infraClusterConfig, err := buildInfraClusterConfig(*infraClusterApiUrl, *infraClusterToken, *infraClusterCA)
 	if err != nil {
-		klog.Fatalf("Failed to build infra cluster config: %v", err)
+		log.Fatalf("Failed to build infra cluster config: %v", err)
 	}
 
 	infraClusterClientSet, err := kubernetes.NewForConfig(infraClusterConfig)
 	if err != nil {
-		klog.Fatalf("Failed to initialize KubeVirt client: %s", err)
+		log.Fatalf("Failed to initialize KubeVirt client: %s", err)
 	}
 
 	virtClient, err := kubevirt.NewClient(infraClusterConfig)
 	if err != nil {
-		klog.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// TODO revise the assumption that the  current running node name should be the infracluster VM name.
 	if *nodeName != "" {
 		_, err = virtClient.GetVMI(context.Background(), *infraClusterNamespace, *nodeName)
 		if err != nil {
-			klog.Fatal(fmt.Errorf("failed to find a VM in the infra cluster with that name %v: %v", nodeName, err))
+			log.Fatalf("failed to find a VM in the infra cluster with that name %v: %v", *nodeName, err)
 		}
 	}
 
@@ -90,7 +88,7 @@ func buildInfraClusterConfig(apiUrl string, tokenFile string, caFile string) (*r
 
 	tlsClientConfig := rest.TLSClientConfig{}
 	if _, err := certutil.NewPool(caFile); err != nil {
-		klog.Errorf("Expected to load root CA config from %s, but got err: %v", caFile, err)
+		log.Errorf("Expected to load root CA config from %s, but got err: %v", caFile, err)
 	} else {
 		tlsClientConfig.CAFile = caFile
 	}

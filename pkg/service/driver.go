@@ -2,7 +2,7 @@ package service
 
 import (
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/kubevirt/csi-driver/pkg/kubevirt"
 )
@@ -37,7 +37,7 @@ func NewkubevirtCSIDriver(infraClusterClient kubernetes.Clientset, virtClient ku
 // Run will initiate the grpc services Identity, Controller, and Node.
 func (driver *kubevirtCSIDriver) Run(endpoint string) {
 	// run the gRPC server
-	klog.Info("Setting the rpc server")
+	log.Info("Setting the rpc server")
 
 	s := NewNonBlockingGRPCServer()
 	s.Start(endpoint, driver.IdentityService, driver.ControllerService, driver.NodeService)

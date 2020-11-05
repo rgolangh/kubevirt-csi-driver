@@ -10,7 +10,7 @@ import (
 
 	"github.com/kubernetes-csi/csi-lib-utils/protosanitizer"
 	"google.golang.org/grpc"
-	"k8s.io/klog"
+	log "github.com/sirupsen/logrus"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
 )
@@ -66,35 +66,35 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 	u, err := url.Parse(endpoint)
 
 	if err != nil {
-		klog.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	var addr string
 	if u.Scheme == "unix" {
 		addr = u.Path
 		if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
-			klog.Fatalf("Failed to remove %s, error: %s", addr, err.Error())
+			log.Fatalf("Failed to remove %s, error: %s", addr, err.Error())
 		}
 
 		listenDir := filepath.Dir(addr)
 		if _, err := os.Stat(listenDir); err != nil {
 			if os.IsNotExist(err) {
-				klog.Fatalf("Expected Kubelet plugin watcher to create parent dir %s but did not find such a dir", listenDir)
+				log.Fatalf("Expected Kubelet plugin watcher to create parent dir %s but did not find such a dir", listenDir)
 			} else {
-				klog.Fatalf("Failed to stat %s, error: %s", listenDir, err.Error())
+				log.Fatalf("Failed to stat %s, error: %s", listenDir, err.Error())
 			}
 		}
 
 	} else if u.Scheme == "tcp" {
 		addr = u.Host
 	} else {
-		klog.Fatalf("%v endpoint scheme not supported", u.Scheme)
+		log.Fatalf("%v endpoint scheme not supported", u.Scheme)
 	}
 
-	klog.V(4).Infof("Start listening with scheme %v, addr %v", u.Scheme, addr)
+	log.Debug("Start listening with scheme %v, addr %v", u.Scheme, addr)
 	listener, err := net.Listen(u.Scheme, addr)
 	if err != nil {
-		klog.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	server := grpc.NewServer(opts...)
@@ -110,21 +110,21 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 		csi.RegisterNodeServer(server, ns)
 	}
 
-	klog.V(4).Infof("Listening for connections on address: %#v", listener.Addr())
+	log.Infof("Listening for connections on address: %#v", listener.Addr())
 
 	if err := server.Serve(listener); err != nil {
-		klog.Fatalf("Failed to serve: %v", err)
+		log.Fatalf("Failed to serve: %v", err)
 	}
 
 }
 
 func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	klog.V(4).Infof("%s called with request: %+v", info.FullMethod, protosanitizer.StripSecrets(req))
+	log.Debugf("%s called with request: %+v", info.FullMethod, protosanitizer.StripSecrets(req))
 	resp, err := handler(ctx, req)
 	if err != nil {
-		klog.Errorf("%s returned with error: %v", info.FullMethod, err)
+		log.Errorf("%s returned with error: %v", info.FullMethod, err)
 	} else {
-		klog.V(4).Infof("%s returned with response: %+v", info.FullMethod, protosanitizer.StripSecrets(resp))
+		log.Debugf("%s returned with response: %+v", info.FullMethod, protosanitizer.StripSecrets(resp))
 	}
 	return resp, err
 }
