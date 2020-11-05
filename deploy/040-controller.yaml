@@ -1,10 +1,10 @@
-kind: StatefulSet
+kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: kubevirt-csi-plugin
+  name: kubevirt-csi-controller
   namespace: kubevirt-csi-driver
 spec:
-  serviceName: "kubevirt-csi-driver"
+  serviceName: kubevirt-csi-driver
   replicas: 1
   selector:
     matchLabels:
@@ -16,50 +16,38 @@ spec:
       labels:
         app: kubevirt-csi-driver
     spec:
-#      serviceAccount: kubevirt-csi-controller-sa
+      hostNetwork: true
+      serviceAccount: kubevirt-csi-controller-sa
+      priorityClassName: system-cluster-critical
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: "NoSchedule"
       containers:
-        - name: csi-external-attacher
+        - name: csi-driver
           imagePullPolicy: Always
-          image: quay.io/k8scsi/csi-attacher:v2.0.0
+#          image: quay.io/kubevirt/csi-driver:latest
+          image: quay.io/rgolangh/kubevirt-csi-driver:latest
           args:
-            - "--v=4"
-            - "--csi-address=/csi/csi.sock"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /csi
-        - name: csi-external-provisioner
-          imagePullPolicy: Always
-          image: quay.io/k8scsi/csi-provisioner:v1.5.0
-          args:
-            - "--v=9"
-            - "--csi-address=/csi/csi.sock"
-            - "--provisioner=csi.kubevirt.io"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /csi
-        - name: kubevirt-csi-driver
-          imagePullPolicy: Always
-          image: quay.io/kubevirt/csi-driver:latest
-          args:
-            - "--endpoint=unix:/csi/csi.sock"
+            - "--endpoint=$(CSI_ENDPOINT)"
             - "--namespace=kubevirt-csi-driver"
             - "--infra-cluster-namespace=$(INFRACLUSTER_NAMESPACE)"
             - "--infra-cluster-api-url=$(INFRACLUSTER_API_URL)"
             - "--infra-cluster-token=/var/run/secrets/infracluster/token"
             - "--infra-cluster-ca=/var/run/secrets/infracluster/ca.crt"
+            - --v=5
           ports:
-          - containerPort: 9808
-            name: healthz
-            protocol: TCP
-          livenessProbe:
-            failureThreshold: 5
-            httpGet:
-              path: /healthz
-              port: healthz
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 30
+            - name: healthz
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10301
+              protocol: TCP
           env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -76,20 +64,53 @@ spec:
                   key: apiUrl
           volumeMounts:
             - name: socket-dir
-              mountPath: /csi
+              mountPath: /var/lib/csi/sockets/pluginproxy/
             - name: infracluster
               mountPath: "/var/run/secrets/infracluster"
-        - name: liveness-probe
-          imagePullPolicy: Always
-          image: quay.io/k8scsi/livenessprobe:v2.0.0
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
+        - name: csi-provisioner
+          image: quay.io/openshift/origin-csi-external-provisioner:latest
           args:
-           - "--v=5"
-           - "--csi-address=/csi/csi.sock"
-           - "--health-port=9808"
-           - "--probe-timeout=3s"
+            - --csi-address=$(ADDRESS)
+            - --default-fstype=ext4
+            - --v=5
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
           volumeMounts:
-           - mountPath: /csi
-             name: socket-dir
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: quay.io/openshift/origin-csi-external-attacher:latest
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v=5
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
+        - name: csi-liveness-probe
+          image: quay.io/openshift/origin-csi-livenessprobe:latest
+          args:
+            - --csi-address=/csi/csi.sock
+            - --probe-timeout=3s
+            - --health-port=10301
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       volumes:
         - name: socket-dir
           emptyDir: {}
