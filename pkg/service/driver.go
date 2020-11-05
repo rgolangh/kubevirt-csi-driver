@@ -25,7 +25,9 @@ type kubevirtCSIDriver struct {
 // NewkubevirtCSIDriver creates a driver instance
 func NewkubevirtCSIDriver(infraClusterClient kubernetes.Clientset, virtClient kubevirt.Client, nodeId string) *kubevirtCSIDriver {
 	d := kubevirtCSIDriver{
-		IdentityService:    &IdentityService{},
+		IdentityService:    &IdentityService{
+			infraClusterClient: virtClient,
+		},
 		ControllerService:  &ControllerService{infraClusterClient: infraClusterClient},
 		NodeService:        &NodeService{nodeId: nodeId, kubevirtClient: virtClient},
 	}
