@@ -35,7 +35,7 @@ github.com/go-stack/stack
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
-# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b => github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
 # github.com/golang/mock v1.3.1
 github.com/golang/mock/gomock
@@ -492,7 +492,6 @@ kubevirt.io/controller-lifecycle-operator-sdk/pkg/sdk/api
 sigs.k8s.io/yaml
 # github.com/go-kit/kit => github.com/go-kit/kit v0.3.0
 # github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.3
-# github.com/golang/glog => github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 # github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
 # github.com/openshift/api => github.com/openshift/api v0.0.0-20191219222812-2987a591a72c
 # github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20191125132246-f6563a70e19a
