@@ -67,12 +67,12 @@ spec:
             - name: INFRACLUSTER_NAMESPACE
               valueFrom:
                 secretKeyRef:
-                  name: infra-cluster-sa-secret
+                  name: infra-cluster-credentials
                   key: namespace
             - name: INFRACLUSTER_API_URL
               valueFrom:
                 secretKeyRef:
-                  name: infra-cluster-sa-secret
+                  name: infra-cluster-credentials
                   key: apiUrl
           volumeMounts:
             - name: socket-dir
@@ -95,4 +95,4 @@ spec:
           emptyDir: {}
         - name: infracluster
           secret:
-            secretName: infra-cluster-sa-secret
+            secretName: infra-cluster-credentials
