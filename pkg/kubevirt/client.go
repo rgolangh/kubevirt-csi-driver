@@ -109,7 +109,7 @@ func (c *client) ListVirtualMachineInstancesNames(namespace string, requiredLabe
 }
 
 func (c *client) DeleteDataVolume(namespace string, name string) error {
-	return c.virtClient.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(name, nil)
+	return c.virtClient.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(name, &metav1.DeleteOptions{})
 }
 
 func (c *client) ListDataVolumeNames(namespace string, requiredLabels map[string]string) ([]csiv1alpha1.DataVolume, error) {
@@ -131,6 +131,6 @@ func (c *client) GetDataVolume(namespace string, name string) (*csiv1alpha1.Data
 }
 
 func (c *client) GetVMI(_ context.Context, namespace string, name string) (*kubevirtapiv1.VirtualMachineInstance, error) {
-	vm, err := c.virtClient.VirtualMachineInstance(namespace).Get(name, nil)
+	vm, err := c.virtClient.VirtualMachineInstance(namespace).Get(name, &metav1.GetOptions{})
 	return vm, err
 }
