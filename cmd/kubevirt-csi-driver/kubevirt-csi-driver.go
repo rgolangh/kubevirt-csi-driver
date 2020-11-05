@@ -30,7 +30,8 @@ var (
 
 func init() {
 	flag.Set("logtostderr", "true")
-	klog.InitFlags(flag.CommandLine)
+	// got error flag log_dir redefined. someother library is initFlaging this..?
+	//klog.InitFlags(flag.CommandLine)
 }
 
 func main() {
