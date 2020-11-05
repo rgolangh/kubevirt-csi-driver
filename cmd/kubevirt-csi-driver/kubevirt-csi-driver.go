@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"net/url"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	certutil "k8s.io/client-go/util/cert"
@@ -75,7 +76,7 @@ func handle() {
 	driver.Run(*endpoint)
 }
 
-func buildInfraClusterConfig(url string, tokenFile string, caFile string) (*rest.Config, error){
+func buildInfraClusterConfig(apiUrl string, tokenFile string, caFile string) (*rest.Config, error){
 	token, err := ioutil.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
@@ -89,8 +90,13 @@ func buildInfraClusterConfig(url string, tokenFile string, caFile string) (*rest
 		tlsClientConfig.CAFile = caFile
 	}
 
+	parse, err := url.Parse(apiUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &rest.Config{
-		Host:            url,
+		Host: parse.Host,
 		TLSClientConfig: tlsClientConfig,
 		BearerToken:     string(token),
 		BearerTokenFile: tokenFile,
