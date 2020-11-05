@@ -9,6 +9,7 @@ require (
 	github.com/kubernetes-csi/csi-lib-utils v0.7.0
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
+	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	google.golang.org/grpc v1.27.0
 	k8s.io/api v0.19.0-rc.2

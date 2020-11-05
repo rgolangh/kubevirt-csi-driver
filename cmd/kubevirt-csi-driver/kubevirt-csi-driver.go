@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"net/url"
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	certutil "k8s.io/client-go/util/cert"
@@ -50,12 +51,12 @@ func handle() {
 
 	infraClusterConfig, err := buildInfraClusterConfig(*infraClusterApiUrl, *infraClusterToken, *infraClusterCA)
 	if err != nil {
-		klog.V(2).Infof("Failed to build infra cluster config %v", err)
+		klog.Fatalf("Failed to build infra cluster config: %v", err)
 	}
 
 	infraClusterClientSet, err := kubernetes.NewForConfig(infraClusterConfig)
 	if err != nil {
-		klog.Fatalf("Failed to initialize KubeVirt client %s", err)
+		klog.Fatalf("Failed to initialize KubeVirt client: %s", err)
 	}
 
 	virtClient, err := kubevirt.NewClient(infraClusterConfig)
@@ -77,23 +78,23 @@ func handle() {
 }
 
 func buildInfraClusterConfig(apiUrl string, tokenFile string, caFile string) (*rest.Config, error){
+	parse, err := url.Parse(apiUrl)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to parse apiUrl %v", apiUrl)
+	}
+
 	token, err := ioutil.ReadFile(tokenFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to read tokenFile %v", tokenFile)
 	}
 
 	tlsClientConfig := rest.TLSClientConfig{}
-
 	if _, err := certutil.NewPool(caFile); err != nil {
 		klog.Errorf("Expected to load root CA config from %s, but got err: %v", caFile, err)
 	} else {
 		tlsClientConfig.CAFile = caFile
 	}
 
-	parse, err := url.Parse(apiUrl)
-	if err != nil {
-		return nil, err
-	}
 
 	return &rest.Config{
 		Host: parse.Host,
