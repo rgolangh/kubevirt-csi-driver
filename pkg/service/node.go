@@ -16,7 +16,7 @@ import (
 	"github.com/kubevirt/csi-driver/pkg/kubevirt"
 	//kubevirtv1 "kubevirt.io/client-go/api/v1"
 	"golang.org/x/net/context"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog"
 )
 
 type NodeService struct {
@@ -31,29 +31,29 @@ var NodeCaps = []csi.NodeServiceCapability_RPC_Type{
 
 // NodeStageVolume prepares the volume for usage. If it's an FS type it creates a file system on the volume.
 func (n *NodeService) NodeStageVolume(_ context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	log.Infof("Staging volume %s with %+v", req.VolumeId, req)
+	klog.Infof("Staging volume %s with %+v", req.VolumeId, req)
 
 	// get the VMI volumes which are under VMI.spec.volumes
 	// volumeID = serialID = kubevirt's DataVolume.metadata.uid
 
 	device, err := getDeviceBySerialID(req.VolumeId)
 	if err != nil {
-		log.Errorf("Failed to fetch device by serialID %s on node %s", req.VolumeId, n.nodeId)
+		klog.Errorf("Failed to fetch device by serialID %s on node %s", req.VolumeId, n.nodeId)
 		return nil, err
 	}
 
 	// is there a filesystem on this device?
 	if device.Fstype != "" {
-		log.Infof("Detected fs %s", device.Fstype)
+		klog.Infof("Detected fs %s", device.Fstype)
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
 
 	fsType := req.VolumeCapability.GetMount().FsType
 	// no filesystem - create it
-	log.Infof("Creating FS %s on device %s", fsType, device)
+	klog.Infof("Creating FS %s on device %s", fsType, device)
 	err = makeFS(device.Path, fsType)
 	if err != nil {
-		log.Errorf("Could not create filesystem %s on %s", fsType, device)
+		klog.Errorf("Could not create filesystem %s on %s", fsType, device)
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func (n *NodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	// TODO link to kubevirt code
 	device, err := getDeviceBySerialID(req.VolumeId)
 	if err != nil {
-		log.Errorf("Failed to fetch device by serialID %s on node %s", req.VolumeId, n.nodeId)
+		klog.Errorf("Failed to fetch device by serialID %s on node %s", req.VolumeId, n.nodeId)
 		return nil, err
 	}
 
@@ -85,12 +85,12 @@ func (n *NodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	//TODO support mount options
 	req.GetStagingTargetPath()
 	fsType := req.VolumeCapability.GetMount().FsType
-	log.Infof("Mounting devicePath %s, on targetPath: %s with FS type: %s",
+	klog.Infof("Mounting devicePath %s, on targetPath: %s with FS type: %s",
 		device, targetPath, fsType)
 	mounter := mount.New("")
 	err = mounter.Mount(device.Path, targetPath, fsType, []string{})
 	if err != nil {
-		log.Errorf("Failed mounting %v", err)
+		klog.Errorf("Failed mounting %v", err)
 		return nil, err
 	}
 
@@ -100,10 +100,10 @@ func (n *NodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 //NodeUnpublishVolume unmount the volume from the worker node
 func (n *NodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	mounter := mount.New("")
-	log.Infof("Unmounting %s", req.GetTargetPath())
+	klog.Infof("Unmounting %s", req.GetTargetPath())
 	err := mounter.Unmount(req.GetTargetPath())
 	if err != nil {
-		log.Infof("Failed to unmount")
+		klog.Infof("Failed to unmount")
 		return nil, err
 	}
 
@@ -149,8 +149,8 @@ type Device struct {
 }
 
 func getDeviceBySerialID(serialID string) (Device, error) {
-	log.Infof("Get the device details by serialID %s", serialID)
-	log.Debug("lsblk -nJo SERIAL,PATH,FSTYPE")
+	klog.Infof("Get the device details by serialID %s", serialID)
+	klog.V(5).Info("lsblk -nJo SERIAL,PATH,FSTYPE")
 
 	// must be lsblk recent enough for json format
 	cmd := exec.Command("lsblk", "-nJo", "SERIAL,PATH,FSTYPE")
@@ -163,7 +163,7 @@ func getDeviceBySerialID(serialID string) (Device, error) {
 	devices := Devices{}
 	err = json.Unmarshal(out, &devices)
 	if err != nil {
-		log.Errorf("Failed to parse json output from lsblk: %s", err)
+		klog.Errorf("Failed to parse json output from lsblk: %s", err)
 		return Device{}, err
 	}
 
@@ -177,7 +177,7 @@ func getDeviceBySerialID(serialID string) (Device, error) {
 
 func makeFS(device string, fsType string) error {
 	// caution, use force flag when creating the filesystem if it doesn't exit.
-	log.Infof("Mounting device %s, with FS %s", device, fsType)
+	klog.Infof("Mounting device %s, with FS %s", device, fsType)
 
 	var cmd *exec.Cmd
 	var stdout, stderr bytes.Buffer
@@ -194,8 +194,8 @@ func makeFS(device string, fsType string) error {
 	err := cmd.Run()
 	exitError, incompleteCmd := err.(*exec.ExitError)
 	if err != nil && incompleteCmd {
-		log.Errorf("stdout: %s", string(stdout.Bytes()))
-		log.Errorf("stderr: %s", string(stderr.Bytes()))
+		klog.Errorf("stdout: %s", string(stdout.Bytes()))
+		klog.Errorf("stderr: %s", string(stderr.Bytes()))
 		return errors.New(err.Error() + " mkfs failed with " + exitError.Error())
 	}
 

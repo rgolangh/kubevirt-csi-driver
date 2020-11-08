@@ -10,13 +10,12 @@ require (
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.6.0
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	google.golang.org/grpc v1.27.0
 	k8s.io/api v0.19.0-rc.2
 	k8s.io/apimachinery v0.19.0-rc.2
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/klog/v2 v2.3.0 // indirect
+	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200720150651-0bdb4ca86cbc
 	kubevirt.io/client-go v0.35.0-rc.0
 	kubevirt.io/containerized-data-importer v1.25.0
@@ -34,6 +33,7 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.16.4
 	k8s.io/client-go => k8s.io/client-go v0.16.4
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.16.4
+	k8s.io/klog => k8s.io/klog v0.4.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 
 	kubevirt.io/containerized-data-importer => kubevirt.io/containerized-data-importer v1.25.0

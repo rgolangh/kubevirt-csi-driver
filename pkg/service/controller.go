@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog"
 )
 
 const (
@@ -31,7 +31,7 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 
 //CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	log.Infof("Creating disk %s", req.Name)
+	klog.Infof("Creating disk %s", req.Name)
 
 	//1. idempotence first - see if disk already exists, kubevirt creates disk by name(alias in kubevirt as well)
 	//c.kubevirtClient.ListDataVolumeNames(req.GetName())
@@ -53,7 +53,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 //DeleteVolume removed the data volume from kubevirt
 func (c *ControllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	log.Infof("Removing data volume with ID %s", req.VolumeId)
+	klog.Infof("Removing data volume with ID %s", req.VolumeId)
 
 	// 1. get data volume name by uid by filtering the list of all volumes of namespace. (there is not getById)
 	// err := c.kubevirtClient.ListDataVolumeNames()
@@ -68,7 +68,7 @@ func (c *ControllerService) ControllerPublishVolume(
 	ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 
 	// req.NodeId == kubevirt VM name
-	log.Infof("Attaching DataVolume %s to VM %s", req.VolumeId, req.NodeId)
+	klog.Infof("Attaching DataVolume %s to VM %s", req.VolumeId, req.NodeId)
 
 	// 1. get DataVolume by ID
 
@@ -80,7 +80,7 @@ func (c *ControllerService) ControllerPublishVolume(
 //ControllerUnpublishVolume detaches the disk from the VM.
 func (c *ControllerService) ControllerUnpublishVolume(_ context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	// req.NodeId == kubevirt VM name
-	log.Infof("Detaching DataVolume %s from VM %s", req.VolumeId, req.NodeId)
+	klog.Infof("Detaching DataVolume %s from VM %s", req.VolumeId, req.NodeId)
 
 	// 1. get DataVolume by ID
 
