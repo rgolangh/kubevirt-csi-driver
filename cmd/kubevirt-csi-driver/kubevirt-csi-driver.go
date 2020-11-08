@@ -1,16 +1,16 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/url"
 	"os"
 	"time"
 
-	"net/url"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	certutil "k8s.io/client-go/util/cert"
@@ -32,8 +32,19 @@ var (
 
 func init() {
 	flag.Set("logtostderr", "true")
-	// got error flag log_dir redefined. someother library is initFlaging this..?
-	//klog.InitFlags(flag.CommandLine)
+	// make glog and klog coexist
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.Info("nice to meet you")
+	klog.InitFlags(klogFlags)
+
+	// Sync the glog and klog flags.
+	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
+		f2 := klogFlags.Lookup(f1.Name)
+		if f2 != nil {
+			value := f1.Value.String()
+			f2.Value.Set(value)
+		}
+	})
 }
 
 func main() {
