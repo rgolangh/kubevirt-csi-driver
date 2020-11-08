@@ -17,7 +17,6 @@ type kubevirtCSIDriver struct {
 	*IdentityService
 	*ControllerService
 	*NodeService
-	nodeId             string
 	infraClusterClient kubernetes.Clientset
 	Client             kubevirt.Client
 }
