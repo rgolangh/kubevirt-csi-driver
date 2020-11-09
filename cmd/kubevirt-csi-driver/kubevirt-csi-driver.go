@@ -95,7 +95,7 @@ func handle() {
 		nodeId = node.Status.NodeInfo.SystemUUID
 	}
 
-	driver := service.NewkubevirtCSIDriver(*infraClusterClientSet, virtClient, nodeId)
+	driver := service.NewkubevirtCSIDriver(*infraClusterClientSet, virtClient, *infraClusterNamespace, nodeId)
 
 	driver.Run(*endpoint)
 }

@@ -28,9 +28,9 @@ const (
 
 //ControllerService implements the controller interface
 type ControllerService struct {
-	infraClusterNamespace string
 	infraClusterClient kubernetes.Clientset
 	kubevirtClient     kubevirt.Client
+	infraClusterNamespace string
 }
 
 var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{

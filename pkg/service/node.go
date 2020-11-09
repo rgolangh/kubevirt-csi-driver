@@ -20,9 +20,9 @@ import (
 )
 
 type NodeService struct {
-	nodeId             string
 	infraClusterClient kubernetes.Clientset
 	kubevirtClient     kubevirt.Client
+	nodeId             string
 }
 
 var NodeCaps = []csi.NodeServiceCapability_RPC_Type{
