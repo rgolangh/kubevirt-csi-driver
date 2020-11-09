@@ -63,11 +63,11 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	bus := req.Parameters[busParameter]
 
 	//1. idempotence first - see if disk already exists, kubevirt creates disk by name(alias in kubevirt as well)
-	names, err := c.kubevirtClient.ListDataVolumeNames(c.infraClusterNamespace, map[string]string{})
+	dvs, err := c.kubevirtClient.ListDataVolumes(c.infraClusterNamespace, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
-	for _, dv := range names {
+	for _, dv := range dvs {
 		if dv.Name == req.Name {
 			// dv exists, nothing more to do
 			return &csi.CreateVolumeResponse{
@@ -93,7 +93,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
-			VolumeId:      dv.Name,
+			VolumeId:      string(dv.UID),
 			VolumeContext: map[string]string{busParameter: bus},
 		},
 	}, nil
@@ -275,32 +275,18 @@ func (c *ControllerService) ControllerGetVolume(ctx context.Context, request *cs
 	}, nil
 }
 
-// TODO I think this is not needed - the CSI volumeID can be the DataVolume name most probably
 func (c *ControllerService) getDataVolumeNameByUID(ctx context.Context, uid string) (string, error) {
-	//
-	//
-	//resource := getDvGroupVersionResource()
-	//
-	//list, err := c.infraClusterClient.Resource(resource).Namespace(InfraNamespace).List(ctx, metav1.ListOptions{})
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//dvName := ""
-	//
-	//for _, dv := range list.Items {
-	//	if string(dv.GetUID()) == uid {
-	//		dvName = dv.GetName()
-	//		break
-	//	}
-	//}
-	//
-	//if dvName == "" {
-	//	return "", status.Error(codes.NotFound, "DataVolume uid: "+uid)
-	//}
-	//
-	//return dvName, nil
-	return uid, nil
+	dvs, err := c.kubevirtClient.ListDataVolumes(c.infraClusterNamespace, map[string]string{})
+	if err != nil {
+		return "", err
+	}
+	for _, dv := range dvs {
+		if string(dv.GetUID()) == uid {
+			return dv.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to match DataVolume by uid %s", uid)
 }
 
 // getVmNameByCSINodeID find a VM in infra cluster by its firmware uuid. The uid is the ID that the CSI node
