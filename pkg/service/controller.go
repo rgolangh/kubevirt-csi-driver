@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -127,7 +128,7 @@ func (c *ControllerService) ControllerPublishVolume(
 	}
 
 	// Get VM name
-	vmName, err := c.getNodeNameByUID(ctx, req.NodeId)
+	vmName, err := c.getVmNameByCSINodeID(ctx, c.infraClusterNamespace, req.NodeId)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,7 @@ func (c *ControllerService) ControllerUnpublishVolume(_ context.Context, req *cs
 	}
 
 	// Get VM name
-	vmName, err := c.getNodeNameByUID(context.Background(), req.NodeId)
+	vmName, err := c.getVmNameByCSINodeID(context.Background(), c.infraClusterNamespace, req.NodeId)
 	if err != nil {
 		return nil, err
 	}
@@ -302,32 +303,21 @@ func (c *ControllerService) getDataVolumeNameByUID(ctx context.Context, uid stri
 	return uid, nil
 }
 
-// getNodeNameByUID
-// Assume that node name in tenant cluster is the same as VM resource name in infra cluster
-// TODO rgolan I think this is not needed - the CSI nodeID is the infra-cluster node name
-func (c *ControllerService) getNodeNameByUID(ctx context.Context, uid string) (string, error) {
-	//resource := getNodesGroupVersionResource()
-	//
-	//list, err := c.infraClusterClient.Resource(resource).List(ctx, metav1.ListOptions{})
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//nodeName := ""
-	//
-	//for _, node := range list.Items {
-	//	if string(node.GetUID()) == uid {
-	//		nodeName = node.GetName()
-	//		break
-	//	}
-	//}
-	//
-	//if nodeName == "" {
-	//	return "", status.Error(codes.NotFound, "Node uid: "+uid)
-	//}
-	//
-	//return nodeName, nil
-	return uid, nil
+// getVmNameByCSINodeID find a VM in infra cluster by its firmware uuid. The uid is the ID that the CSI node
+// part publishes in NodeGetInfo and then used by CSINode.spec.drivers[].nodeID
+func (c *ControllerService) getVmNameByCSINodeID(_ context.Context,namespace string, csiNodeID string) (string, error) {
+	vmis, err := c.kubevirtClient.ListVirtualMachines(namespace, map[string]string{})
+	if err != nil {
+		klog.Errorf("failed to list VMIS %v", err)
+		return "", err
+	}
+
+	for _, vmi := range vmis {
+		if string(vmi.Spec.Domain.Firmware.UUID) == csiNodeID {
+			return vmi.Name, nil
+		}
+	}
+	return "", fmt.Errorf("failed to find VM with domain.firmware.uuid %v", csiNodeID)
 }
 
 func getNodesGroupVersionResource() schema.GroupVersionResource {

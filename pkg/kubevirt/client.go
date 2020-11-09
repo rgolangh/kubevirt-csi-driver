@@ -27,7 +27,7 @@ type Client interface {
 	GetNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
 	ListNamespace(ctx context.Context) (*corev1.NamespaceList, error)
 	GetStorageClass(ctx context.Context, name string) (*storagev1.StorageClass, error)
-	ListVirtualMachineNames(namespace string, requiredLabels map[string]string) ([]string, error)
+	ListVirtualMachines(namespace string, requiredLabels map[string]string) ([]kubevirtapiv1.VirtualMachineInstance, error)
 	DeleteDataVolume(namespace string, name string) error
 	CreateDataVolume(namespace string, dataVolume csiv1alpha1.DataVolume) error
 	GetDataVolume(namespace string, name string) (*csiv1alpha1.DataVolume, error)
@@ -51,8 +51,12 @@ func (c *client) RemoveVolumeFromVM(namespace string, vmName string, hotPlugRequ
 	return c.virtClient.VirtualMachine(namespace).RemoveVolume(vmName, &hotPlugRequest)
 }
 
-func (c *client) ListVirtualMachineNames(namespace string, requiredLabels map[string]string) ([]string, error) {
-	panic("implement me")
+func (c *client) ListVirtualMachines(namespace string, requiredLabels map[string]string) ([]kubevirtapiv1.VirtualMachineInstance, error) {
+	list, err := c.virtClient.VirtualMachineInstance(namespace).List(&metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return list.Items, nil
 }
 
 func (c *client) CreateDataVolume(namespace string, dataVolume csiv1alpha1.DataVolume) error {
