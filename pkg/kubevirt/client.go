@@ -31,7 +31,7 @@ type Client interface {
 	DeleteDataVolume(namespace string, name string) error
 	CreateDataVolume(namespace string, dataVolume csiv1alpha1.DataVolume) error
 	GetDataVolume(namespace string, name string) (*csiv1alpha1.DataVolume, error)
-	ListDataVolumes(namespace string, requiredLabels map[string]string) ([]csiv1alpha1.DataVolume, error)
+	ListDataVolumes(namespace string) ([]csiv1alpha1.DataVolume, error)
 	GetVMI(ctx context.Context, namespace string, name string) (*kubevirtapiv1.VirtualMachineInstance, error)
 	AddVolumeToVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error
 	RemoveVolumeFromVM(namespace string, vmName string, hotPlugRequest kubevirtapiv1.HotplugVolumeRequest) error
@@ -127,10 +127,10 @@ func (c *client) DeleteDataVolume(namespace string, name string) error {
 	return c.virtClient.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(name, &metav1.DeleteOptions{})
 }
 
-func (c *client) ListDataVolumes(namespace string, requiredLabels map[string]string) ([]csiv1alpha1.DataVolume, error) {
+func (c *client) ListDataVolumes(namespace string) ([]csiv1alpha1.DataVolume, error) {
 	list, err := c.virtClient.CdiClient().CdiV1alpha1().
 		DataVolumes(namespace).
-		List(metav1.ListOptions{LabelSelector: labels.FormatLabels(requiredLabels)})
+		List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+)
 
 func TestDeviceExtraction(t *testing.T) {
 

@@ -5,6 +5,9 @@ import (
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubevirt/csi-driver/pkg/kubevirt"
@@ -13,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	v1 "kubevirt.io/client-go/api/v1"
@@ -46,43 +48,38 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	// Create DataVolume resource in infra cluster
 	// Get details of new DataVolume resource
 	// Wait until DataVolume is ready??
-	dv := cdiv1.DataVolume{}
+	
 
 	storageClassName := req.Parameters[infraStorageClassNameParameter]
 	volumeMode := corev1.PersistentVolumeFilesystem // TODO: get it from req.VolumeCapabilities
-	dv.Name = req.Name
-	dv.Spec.PVC = &corev1.PersistentVolumeClaimSpec{
-		AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-		StorageClassName: &storageClassName,
-		VolumeMode:       &volumeMode,
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceRequestsStorage: *resource.NewScaledQuantity(req.GetCapacityRange().GetRequiredBytes(), 0)},
+	quantity := resource.NewScaledQuantity(req.GetCapacityRange().GetRequiredBytes(), 0)
+	klog.Infof("quantity is %v", quantity)
+
+	dv := cdiv1.DataVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: req.Name,
+		},
+		Spec: cdiv1.DataVolumeSpec{
+			Source: cdiv1.DataVolumeSource{
+				Blank: &cdiv1.DataVolumeBlankImage{},
+			},
+			PVC: &corev1.PersistentVolumeClaimSpec{
+				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				StorageClassName: &storageClassName,
+				VolumeMode:       &volumeMode,
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceRequestsStorage: *quantity},
+				},
+			},
 		},
 	}
+
 	bus := req.Parameters[busParameter]
 
-	//1. idempotence first - see if disk already exists, kubevirt creates disk by name(alias in kubevirt as well)
-	dvs, err := c.kubevirtClient.ListDataVolumes(c.infraClusterNamespace, map[string]string{})
-	if err != nil {
-		return nil, err
-	}
-	for _, dv := range dvs {
-		if dv.Name == req.Name {
-			// dv exists, nothing more to do
-			return &csi.CreateVolumeResponse{
-				Volume: &csi.Volume{
-					CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
-					VolumeId:      dv.Name,
-					VolumeContext: map[string]string{busParameter: bus},
-				},
-			}, nil
-		}
-	}
-
-	// 2. create the data volume if it doesn't exist.
-	err = c.kubevirtClient.CreateDataVolume(c.infraClusterNamespace, dv)
-	if err != nil {
+	// idempotence - try to create and check if exists already
+	err := c.kubevirtClient.CreateDataVolume(c.infraClusterNamespace, dv)
+	if err != nil && !errors.IsAlreadyExists(err) {
 		klog.Errorf("failed to create data volume on infra-cluster %v", err)
 		return nil, err
 	}
@@ -276,7 +273,7 @@ func (c *ControllerService) ControllerGetVolume(ctx context.Context, request *cs
 }
 
 func (c *ControllerService) getDataVolumeNameByUID(ctx context.Context, uid string) (string, error) {
-	dvs, err := c.kubevirtClient.ListDataVolumes(c.infraClusterNamespace, map[string]string{})
+	dvs, err := c.kubevirtClient.ListDataVolumes(c.infraClusterNamespace)
 	if err != nil {
 		return "", err
 	}
