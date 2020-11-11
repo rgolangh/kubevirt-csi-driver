@@ -290,7 +290,7 @@ func (c *ControllerService) getDataVolumeNameByUID(ctx context.Context, uid stri
 // getVmNameByCSINodeID find a VM in infra cluster by its firmware uuid. The uid is the ID that the CSI node
 // part publishes in NodeGetInfo and then used by CSINode.spec.drivers[].nodeID
 func (c *ControllerService) getVmNameByCSINodeID(_ context.Context,namespace string, csiNodeID string) (string, error) {
-	vmis, err := c.kubevirtClient.ListVirtualMachines(namespace, map[string]string{})
+	vmis, err := c.kubevirtClient.ListVirtualMachines(namespace)
 	if err != nil {
 		klog.Errorf("failed to list VMIS %v", err)
 		return "", err
