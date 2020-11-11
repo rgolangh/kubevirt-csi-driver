@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -69,7 +70,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 				VolumeMode:       &volumeMode,
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceRequestsStorage: *quantity},
+						corev1.ResourceStorage: *quantity},
 				},
 			},
 		},
@@ -296,7 +297,7 @@ func (c *ControllerService) getVmNameByCSINodeID(_ context.Context,namespace str
 	}
 
 	for _, vmi := range vmis {
-		if string(vmi.Spec.Domain.Firmware.UUID) == csiNodeID {
+		if string(vmi.Spec.Domain.Firmware.UUID) == strings.ToLower(csiNodeID) {
 			return vmi.Name, nil
 		}
 	}
