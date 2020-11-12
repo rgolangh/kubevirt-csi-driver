@@ -4,7 +4,6 @@ metadata:
   name: kubevirt-csi-controller
   namespace: kubevirt-csi-driver
 spec:
-  serviceName: kubevirt-csi-driver
   replicas: 1
   selector:
     matchLabels:
