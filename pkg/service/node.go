@@ -13,10 +13,10 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 
-	"github.com/kubevirt/csi-driver/pkg/kubevirt"
-	//kubevirtv1 "kubevirt.io/client-go/api/v1"
 	"golang.org/x/net/context"
 	"k8s.io/klog"
+
+	"github.com/kubevirt/csi-driver/pkg/kubevirt"
 )
 
 type NodeService struct {
@@ -150,6 +150,9 @@ type Device struct {
 }
 
 func getDeviceBySerialID(serialID string) (Device, error) {
+	//trim to 21 chars to support system which only expose SHORT_SERIAL_ID
+	serialID = serialID[:20]
+	
 	klog.Infof("Get the device details by serialID %s", serialID)
 	klog.V(5).Info("lsblk -nJo SERIAL,PATH,FSTYPE")
 
