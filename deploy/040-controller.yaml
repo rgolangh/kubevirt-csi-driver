@@ -8,8 +8,6 @@ spec:
   selector:
     matchLabels:
       app: kubevirt-csi-driver
-  updateStrategy:
-    type: RollingUpdate
   template:
     metadata:
       labels:
