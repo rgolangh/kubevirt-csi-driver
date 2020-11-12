@@ -31,12 +31,13 @@ var NodeCaps = []csi.NodeServiceCapability_RPC_Type{
 
 // NodeStageVolume prepares the volume for usage. If it's an FS type it creates a file system on the volume.
 func (n *NodeService) NodeStageVolume(_ context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+	// TODO remove the req struct from the log, it may contain sentitive info like secrets
 	klog.Infof("Staging volume %s with %+v", req.VolumeId, req)
 
 	// get the VMI volumes which are under VMI.spec.volumes
-	// volumeID = serialID = kubevirt's DataVolume.metadata.uid
+	// serialID = kubevirt's DataVolume.UID
 
-	device, err := getDeviceBySerialID(req.VolumeId)
+	device, err := getDeviceBySerialID(req.VolumeContext[serialParameter])
 	if err != nil {
 		klog.Errorf("Failed to fetch device by serialID %s", req.VolumeId)
 		return nil, err
@@ -150,9 +151,6 @@ type Device struct {
 }
 
 func getDeviceBySerialID(serialID string) (Device, error) {
-	//trim to 21 chars to support system which only expose SHORT_SERIAL_ID
-	serialID = serialID[:20]
-	
 	klog.Infof("Get the device details by serialID %s", serialID)
 	klog.V(5).Info("lsblk -nJo SERIAL,PATH,FSTYPE")
 

@@ -13,3 +13,12 @@ func TestDeviceExtraction(t *testing.T) {
 	t.Logf("device %+v", device)
 
 }
+
+func TestResourceQuantity(t *testing.T) {
+	b := 102400
+	t.Logf("quantity of %v bytest is ", b)
+	quantity := resource.NewScaledQuantity(int64(b), 0)
+
+	t.Logf("quantity of %v bytest is ", quantity.IsZero())
+	t.Logf("quantity of %v bytest is ", quantity)
+}

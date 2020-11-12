@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	v1 "kubevirt.io/client-go/api/v1"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
@@ -27,6 +26,7 @@ const (
 	ParameterThinProvisioning      = "thinProvisioning"
 	infraStorageClassNameParameter = "infraStorageClassName"
 	busParameter                   = "bus"
+	serialParameter                = "serial"
 )
 
 //ControllerService implements the controller interface
@@ -77,22 +77,29 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	bus := req.Parameters[busParameter]
-
 	// idempotence - try to create and check if exists already
 	err := c.kubevirtClient.CreateDataVolume(c.infraClusterNamespace, dv)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		klog.Errorf("failed to create data volume on infra-cluster %v", err)
 		return nil, err
 	}
+	dataVolume, err := c.kubevirtClient.GetDataVolume(c.infraClusterNamespace, dv.Name)
+	if err != nil {
+		klog.Errorf("failed to fetch data volume '%s' on infra-cluster %v", dv.Name, err)
+		return nil, err
+	}
+
 	// TODO support for thin/thick provisioning from the storage class parameters
 	_, _ = strconv.ParseBool(req.Parameters[ParameterThinProvisioning])
 
-	// 3. return a response TODO stub values for now
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
-			VolumeId:      string(dv.UID),
-			VolumeContext: map[string]string{busParameter: bus},
+			VolumeId:      dataVolume.Name,
+			VolumeContext: map[string]string{
+				busParameter:    bus,
+				serialParameter: string(dataVolume.UID),
+			},
 		},
 	}, nil
 }
@@ -119,8 +126,7 @@ func (c *ControllerService) ControllerPublishVolume(
 	// req.NodeId == kubevirt VM name
 	klog.Infof("Attaching DataVolume UID %s to Node ID %s", req.VolumeId, req.NodeId)
 
-	// Get DataVolume name by ID
-	dvName, err := c.getDataVolumeNameByUID(ctx, req.VolumeId)
+	dv, err := c.kubevirtClient.GetDataVolume(c.infraClusterNamespace, req.VolumeId)
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +138,13 @@ func (c *ControllerService) ControllerPublishVolume(
 	}
 
 	// Determine disk name (disk-<DataVolume-name>)
-	diskName := "disk-" + dvName
-
-	// Determine serial number/string for the new disk
-	serial := req.VolumeId[0:20]
+	diskName := "disk-" + dv.Name
 
 	// Determine BUS type
 	bus := req.VolumeContext[busParameter]
+
+	dvName := dv.Name
+	serial := string(dv.UID)
 
 	// hotplug DataVolume to VM
 	klog.Infof("Start attaching DataVolume %s to VM %s. Disk name: %s. Serial: %s. Bus: %s", dvName, vmName, diskName, serial, bus)
@@ -176,8 +182,7 @@ func (c *ControllerService) ControllerUnpublishVolume(_ context.Context, req *cs
 	// req.NodeId == kubevirt VM name
 	klog.Infof("Detaching DataVolume UID %s from Node ID %s", req.VolumeId, req.NodeId)
 
-	// Get DataVolume name by ID
-	dvName, err := c.getDataVolumeNameByUID(context.Background(), req.VolumeId)
+	dv, err := c.kubevirtClient.GetDataVolume(c.infraClusterNamespace, req.VolumeId)
 	if err != nil {
 		return nil, err
 	}
@@ -189,14 +194,14 @@ func (c *ControllerService) ControllerUnpublishVolume(_ context.Context, req *cs
 	}
 
 	// Determine disk name (disk-<DataVolume-name>)
-	diskName := "disk-" + dvName
+	diskName := "disk-" + dv.Name
 
 	// Detach DataVolume from VM
 	hotplugRequest := v1.HotplugVolumeRequest{
 		Volume: &v1.Volume{
 			VolumeSource: v1.VolumeSource{
 				DataVolume: &v1.DataVolumeSource{
-					Name: dvName,
+					Name: dv.Name,
 				},
 			},
 			Name: diskName,
@@ -302,20 +307,4 @@ func (c *ControllerService) getVmNameByCSINodeID(_ context.Context,namespace str
 		}
 	}
 	return "", fmt.Errorf("failed to find VM with domain.firmware.uuid %v", csiNodeID)
-}
-
-func getNodesGroupVersionResource() schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    cdiv1.SchemeGroupVersion.Group,
-		Version:  cdiv1.SchemeGroupVersion.Version,
-		Resource: "nodes",
-	}
-}
-
-func getDvGroupVersionResource() schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    cdiv1.SchemeGroupVersion.Group,
-		Version:  cdiv1.SchemeGroupVersion.Version,
-		Resource: "datavolumes",
-	}
 }
