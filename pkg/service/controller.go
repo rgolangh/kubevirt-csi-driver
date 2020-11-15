@@ -26,7 +26,7 @@ const (
 	ParameterThinProvisioning      = "thinProvisioning"
 	infraStorageClassNameParameter = "infraStorageClassName"
 	busParameter                   = "bus"
-	serialParameter                = "serial"
+	serialContextParameter         = "serial"
 )
 
 //ControllerService implements the controller interface
@@ -96,8 +96,8 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
 			VolumeId:      dataVolume.Name,
 			VolumeContext: map[string]string{
-				busParameter:    bus,
-				serialParameter: string(dataVolume.UID),
+				busParameter:           bus,
+				serialContextParameter: string(dataVolume.UID),
 			},
 		},
 	}, nil
