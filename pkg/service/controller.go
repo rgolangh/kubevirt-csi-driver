@@ -31,8 +31,8 @@ const (
 
 //ControllerService implements the controller interface
 type ControllerService struct {
-	infraClusterClient kubernetes.Clientset
-	kubevirtClient     kubevirt.Client
+	infraClusterClient    kubernetes.Clientset
+	kubevirtClient        kubevirt.Client
 	infraClusterNamespace string
 }
 
@@ -49,7 +49,6 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	// Create DataVolume resource in infra cluster
 	// Get details of new DataVolume resource
 	// Wait until DataVolume is ready??
-	
 
 	storageClassName := req.Parameters[infraStorageClassNameParameter]
 	volumeMode := corev1.PersistentVolumeFilesystem // TODO: get it from req.VolumeCapabilities
@@ -80,7 +79,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	// idempotence - try to create and check if exists already
 	err := c.kubevirtClient.CreateDataVolume(c.infraClusterNamespace, dv)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		klog.Errorf("failed to create data volume on infra-cluster %v", err)
+		klog.Errorf("failed t o create data volume on infra-cluster %v", err)
 		return nil, err
 	}
 	dataVolume, err := c.kubevirtClient.GetDataVolume(c.infraClusterNamespace, dv.Name)
@@ -294,7 +293,7 @@ func (c *ControllerService) getDataVolumeNameByUID(ctx context.Context, uid stri
 
 // getVmNameByCSINodeID find a VM in infra cluster by its firmware uuid. The uid is the ID that the CSI node
 // part publishes in NodeGetInfo and then used by CSINode.spec.drivers[].nodeID
-func (c *ControllerService) getVmNameByCSINodeID(_ context.Context,namespace string, csiNodeID string) (string, error) {
+func (c *ControllerService) getVmNameByCSINodeID(_ context.Context, namespace string, csiNodeID string) (string, error) {
 	vmis, err := c.kubevirtClient.ListVirtualMachines(namespace)
 	if err != nil {
 		klog.Errorf("failed to list VMIS %v", err)
